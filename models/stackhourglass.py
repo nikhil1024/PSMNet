@@ -111,11 +111,11 @@ class PSMNet(nn.Module):
 
         for i in range(self.maxdisp//4):
             if i > 0 :
-             cost[:, :refimg_fea.size()[1], i, :,i:]   = refimg_fea[:,:,:,i:]
-             cost[:, refimg_fea.size()[1]:, i, :,i:] = targetimg_fea[:,:,:,:-i]
+                cost[:, :refimg_fea.size()[1], i, :,i:]   = refimg_fea[:,:,:,i:]
+                cost[:, refimg_fea.size()[1]:, i, :,i:] = targetimg_fea[:,:,:,:-i]
             else:
-             cost[:, :refimg_fea.size()[1], i, :,:]   = refimg_fea
-             cost[:, refimg_fea.size()[1]:, i, :,:]   = targetimg_fea
+                cost[:, :refimg_fea.size()[1], i, :,:]   = refimg_fea
+                cost[:, refimg_fea.size()[1]:, i, :,:]   = targetimg_fea
         cost = cost.contiguous()
 
         cost0 = self.dres0(cost)
