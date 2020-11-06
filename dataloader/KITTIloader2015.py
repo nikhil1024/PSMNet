@@ -26,7 +26,7 @@ def dataloader(filepath):
   # train = image[:160]
   # val   = image[160:]
   
-  file_path = r"./kitti2015_training_val_iucvg.txt"
+  file_path = r"./dataloader/kitti2015_training_val_iucvg.txt"
   with open(file_path, 'r') as f:
     files = f.readlines()
 
