@@ -21,10 +21,29 @@ def dataloader(filepath):
   disp_L = 'disp_occ_0/'
   disp_R = 'disp_occ_1/'
 
-  image = [img for img in os.listdir(filepath+left_fold) if img.find('_10') > -1]
+  # image = [img for img in os.listdir(filepath+left_fold) if img.find('_10') > -1]
 
-  train = image[:160]
-  val   = image[160:]
+  # train = image[:160]
+  # val   = image[160:]
+  
+  file_path = r"./kitti2015_training_val_iucvg.txt"
+  with open(file_path, 'r') as f:
+    files = f.readlines()
+
+  flag = True
+  train = []
+  val = []
+  for i, file_ in enumerate(files):
+    if "Training" in file_:
+      continue
+    if "Val" in file_:
+      flag = False
+      continue
+    if ".png" in file_:
+      if flag:
+        train.append(file_.split()[0])
+      else:
+        val.append(file_.split()[0])
 
   left_train  = [filepath+left_fold+img for img in train]
   right_train = [filepath+right_fold+img for img in train]
