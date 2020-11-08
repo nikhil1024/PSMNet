@@ -11,6 +11,7 @@ import time
 import math
 from models import *
 from PIL import Image
+from scipy.io import savemat
 
 parser = argparse.ArgumentParser(description='PSMNet')
 parser.add_argument('--KITTI', default='2015',
@@ -110,8 +111,15 @@ def main():
             img = pred_disp
 
         img = (img*256).astype('uint16')
-        img = Image.fromarray(img)
-        img.save(test_left_img[inx].split('/')[-1])
+        
+        save_path = r'./predictions/'
+        os.makedirs(save_path, exist_ok=True)
+        save_dict = {
+          'prediction': img
+        }
+        savemat(save_path + "{}.mat".format(test_left_img[inx].split('/')[-1]), save_dict)
+        # img = Image.fromarray(img)
+        # img.save(test_left_img[inx].split('/')[-1])
 
 
 if __name__ == '__main__':
