@@ -41,7 +41,7 @@ else:
    from dataloader import KITTI_submission_loader2012 as DA  
 
 # test_left_img, test_right_img = DA.dataloader(args.datapath)
-test_left_img, test_right_img = DA.dataloader_val(args.datapath)
+test_left_img, test_right_img, test_left_disp = DA.dataloader_val(args.datapath)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(int(args.maxdisp))
@@ -75,15 +75,18 @@ def main():
     normal_mean_var = {'mean': [0.485, 0.456, 0.406],
                         'std': [0.229, 0.224, 0.225]}
     infer_transform = transforms.Compose([transforms.ToTensor(),
-                                            transforms.Normalize(**normal_mean_var)])    
+                                            transforms.Normalize(**normal_mean_var)])
+    transform2 = transforms.Compose([transforms.ToTensor()])
 
     for inx in range(len(test_left_img)):
 
         imgL_o = Image.open(test_left_img[inx]).convert('RGB')
         imgR_o = Image.open(test_right_img[inx]).convert('RGB')
+        dispL_o = Image.open(test_left_disp[inx])
 
         imgL = infer_transform(imgL_o)
-        imgR = infer_transform(imgR_o)         
+        imgR = infer_transform(imgR_o)
+        dispL = transform2(dispL_o)
 
         # pad to width and hight to 16 times
         if imgL.shape[1] % 16 != 0:
