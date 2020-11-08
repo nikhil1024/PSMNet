@@ -44,7 +44,7 @@ else:
 test_left_img, test_right_img = DA.dataloader_val(args.datapath)
 
 if args.model == 'stackhourglass':
-    model = stackhourglass(args.maxdisp)
+    model = stackhourglass(int(args.maxdisp))
 elif args.model == 'basic':
     model = basic(args.maxdisp)
 else:
@@ -112,14 +112,15 @@ def main():
 
         img = (img*256).astype('uint16')
         
-        save_path = r'./predictions/'
+        save_path = r'./predictions_png/'
         os.makedirs(save_path, exist_ok=True)
-        save_dict = {
-          'prediction': img
-        }
-        savemat(save_path + "{}.mat".format(test_left_img[inx].split('/')[-1]), save_dict)
-        # img = Image.fromarray(img)
-        # img.save(test_left_img[inx].split('/')[-1])
+        # save_dict = {
+        #   'prediction': img
+        # }
+        # savemat(save_path + "{}.mat".format(test_left_img[inx].split('/')[-1].split('.')[0]), save_dict)
+
+        img = Image.fromarray(img)
+        img.save(save_path + test_left_img[inx].split('/')[-1])
 
 
 if __name__ == '__main__':
