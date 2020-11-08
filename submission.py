@@ -39,7 +39,8 @@ if args.KITTI == '2015':
 else:
    from dataloader import KITTI_submission_loader2012 as DA  
 
-test_left_img, test_right_img = DA.dataloader(args.datapath)
+# test_left_img, test_right_img = DA.dataloader(args.datapath)
+test_left_img, test_right_img = DA.dataloader_val(args.datapath)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
