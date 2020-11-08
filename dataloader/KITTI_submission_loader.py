@@ -33,6 +33,8 @@ def dataloader_val(filepath):
 
   left_fold  = 'image_2/'
   right_fold = 'image_3/'
+  disp_L = 'disp_occ_0/'
+  disp_R = 'disp_occ_1/'
 
 
   # image = [img for img in os.listdir(filepath+left_fold) if img.find('_10') > -1]
@@ -58,5 +60,6 @@ def dataloader_val(filepath):
 
   left_test  = [filepath+left_fold+img for img in val]
   right_test = [filepath+right_fold+img for img in val]
+  disp_test_L = [filepath+disp_L+img for img in val]
 
-  return left_test, right_test
+  return left_test, right_test, disp_test_L
