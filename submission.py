@@ -53,11 +53,11 @@ else:
 model = nn.DataParallel(model, device_ids=[0])
 model.cuda()
 
-if args.loadmodel is not None:
-    state_dict = torch.load(args.loadmodel)
-    model.load_state_dict(state_dict['state_dict'])
+# if args.loadmodel is not None:
+#     state_dict = torch.load(args.loadmodel)
+#     model.load_state_dict(state_dict['state_dict'])
 
-print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
+# print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
 def test(imgL,imgR):
     model.eval()
@@ -77,63 +77,78 @@ def main():
     infer_transform = transforms.Compose([transforms.ToTensor(),
                                             transforms.Normalize(**normal_mean_var)])
     transform2 = transforms.Compose([transforms.ToTensor()])
-
-    if args.loadmodel is not None:
-        state_dict = torch.load(args.loadmodel)
-        model.load_state_dict(state_dict['state_dict'])
-
-    for inx in range(len(test_left_img)):
-
-        imgL_o = Image.open(test_left_img[inx]).convert('RGB')
-        imgR_o = Image.open(test_right_img[inx]).convert('RGB')
-        dispL_o = Image.open(test_left_disp[inx])
-
-        imgL = infer_transform(imgL_o)
-        imgR = infer_transform(imgR_o)
-        dispL = transform2(dispL_o).squeeze(0).detach().numpy()
-
-        # pad to width and hight to 16 times
-        if imgL.shape[1] % 16 != 0:
-            times = imgL.shape[1]//16       
-            top_pad = (times+1)*16 -imgL.shape[1]
-        else:
-            top_pad = 0
-
-        if imgL.shape[2] % 16 != 0:
-            times = imgL.shape[2]//16                       
-            right_pad = (times+1)*16-imgL.shape[2]
-        else:
-            right_pad = 0    
-
-        imgL = F.pad(imgL,(0,right_pad, top_pad,0)).unsqueeze(0)
-        imgR = F.pad(imgR,(0,right_pad, top_pad,0)).unsqueeze(0)
-
-        start_time = time.time()
-        pred_disp = test(imgL,imgR)
-        print('time = %.2f' %(time.time() - start_time))
-
-        if top_pad !=0 or right_pad != 0:
-            img = pred_disp[top_pad:,:-right_pad]
-        else:
-            img = pred_disp
-
-        img = (img*256).astype('uint16')
-        print("Sizes:", img.shape, dispL.shape, img.min(), img.max(), dispL.min(), dispL.max())
+    
+    best_rate = 9999.0
+    best_model = 0
+    for model in range(1, 300):
+        if args.loadmodel is not None:
+            state_dict = torch.load(args.loadmodel + str(model) + '.tar')
+            model.load_state_dict(state_dict['state_dict'])
         
-        mask = np.logical_and(dispL >= 0.001 * 256, dispL <= int(args.maxdisp) * 256)
-        rate = np.sum(np.abs(img[mask] - dispL[mask]) > 3.0) / np.sum(mask)
-        # print("Rate:", rate, np.sum(mask), np.sum(np.abs(img[mask] - dispL[mask]) > 3.0))
-        # exit()
-        
-        save_path = r'./predictions_png/'
-        os.makedirs(save_path, exist_ok=True)
-        # save_dict = {
-        #   'prediction': img
-        # }
-        # savemat(save_path + "{}.mat".format(test_left_img[inx].split('/')[-1].split('.')[0]), save_dict)
+        avg_rate = 0
+        for inx in range(len(test_left_img)):
 
-        img = Image.fromarray(img)
-        img.save(save_path + test_left_img[inx].split('/')[-1])
+            imgL_o = Image.open(test_left_img[inx]).convert('RGB')
+            imgR_o = Image.open(test_right_img[inx]).convert('RGB')
+            dispL_o = Image.open(test_left_disp[inx])
+
+            imgL = infer_transform(imgL_o)
+            imgR = infer_transform(imgR_o)
+            dispL = transform2(dispL_o).squeeze(0).detach().numpy()
+
+            # pad to width and hight to 16 times
+            if imgL.shape[1] % 16 != 0:
+                times = imgL.shape[1]//16       
+                top_pad = (times+1)*16 -imgL.shape[1]
+            else:
+                top_pad = 0
+
+            if imgL.shape[2] % 16 != 0:
+                times = imgL.shape[2]//16                       
+                right_pad = (times+1)*16-imgL.shape[2]
+            else:
+                right_pad = 0    
+
+            imgL = F.pad(imgL,(0,right_pad, top_pad,0)).unsqueeze(0)
+            imgR = F.pad(imgR,(0,right_pad, top_pad,0)).unsqueeze(0)
+
+            start_time = time.time()
+            pred_disp = test(imgL,imgR)
+            print('time = %.2f' %(time.time() - start_time))
+
+            if top_pad !=0 or right_pad != 0:
+                img = pred_disp[top_pad:,:-right_pad]
+            else:
+                img = pred_disp
+
+            img = (img*256).astype('uint16')
+
+            mask = np.logical_and(dispL >= 0.001 * 256, dispL <= int(args.maxdisp) * 256)
+            rate = np.sum(np.abs(img[mask] - dispL[mask]) > 3.0) / np.sum(mask)
+            
+            avg_rate += rate
+
+            # save_path = r'./predictions_png/'
+            # os.makedirs(save_path, exist_ok=True)
+            
+            # --- SAVE AS MAT FILE ---
+            # save_dict = {
+            #   'prediction': img
+            # }
+            # savemat(save_path + "{}.mat".format(test_left_img[inx].split('/')[-1].split('.')[0]), save_dict)
+            
+            # --- SAVE AS PNG IMAGE ---
+            # img = Image.fromarray(img)
+            # img.save(save_path + test_left_img[inx].split('/')[-1])
+    
+        avg_rate = avg_rate / len(test_left_img)
+        print("===> Model {} -- Total {} Frames ==> AVG 3 Px Error Rate: {:.4f}".format(model, len(test_left_img), avg_rate))
+        
+        if avg_rate < best_rate:
+            best_rate = avg_rate
+            best_model = model
+    
+    print("===> Best Model {} ==> Best AVG 3 Px Error Rate: {:.4f}".format(best_model, best_rate))
 
 
 if __name__ == '__main__':
