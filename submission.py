@@ -78,6 +78,10 @@ def main():
                                             transforms.Normalize(**normal_mean_var)])
     transform2 = transforms.Compose([transforms.ToTensor()])
 
+    if args.loadmodel is not None:
+        state_dict = torch.load(args.loadmodel)
+        model.load_state_dict(state_dict['state_dict'])
+
     for inx in range(len(test_left_img)):
 
         imgL_o = Image.open(test_left_img[inx]).convert('RGB')
@@ -86,7 +90,7 @@ def main():
 
         imgL = infer_transform(imgL_o)
         imgR = infer_transform(imgR_o)
-        dispL = transform2(dispL_o)
+        dispL = transform2(dispL_o).squeeze(0).detach().numpy()
 
         # pad to width and hight to 16 times
         if imgL.shape[1] % 16 != 0:
@@ -114,6 +118,12 @@ def main():
             img = pred_disp
 
         img = (img*256).astype('uint16')
+        print("Sizes:", img.shape, dispL.shape, img.min(), img.max(), dispL.min(), dispL.max())
+        
+        mask = np.logical_and(dispL >= 0.001 * 256, dispL <= int(args.maxdisp) * 256)
+        rate = np.sum(np.abs(img[mask] - dispL[mask]) > 3.0) / np.sum(mask)
+        # print("Rate:", rate, np.sum(mask), np.sum(np.abs(img[mask] - dispL[mask]) > 3.0))
+        # exit()
         
         save_path = r'./predictions_png/'
         os.makedirs(save_path, exist_ok=True)
