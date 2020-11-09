@@ -56,7 +56,8 @@ model.cuda()
 # if args.loadmodel is not None:
 #     state_dict = torch.load(args.loadmodel)
 #     model.load_state_dict(state_dict['state_dict'])
-
+#     print("Loaded model")
+# exit()
 # print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
 
 def test(imgL,imgR):
@@ -80,9 +81,11 @@ def main():
     
     best_rate = 9999.0
     best_model = 0
-    for model in range(1, 300):
+    for model_no in range(1, 300):
         if args.loadmodel is not None:
-            state_dict = torch.load(args.loadmodel + str(model) + '.tar')
+            # print(args.loadmodel + str(model) + '.tar')
+            # state_dict = torch.load(args.loadmodel)
+            state_dict = torch.load(args.loadmodel + str(model_no) + '.tar')
             model.load_state_dict(state_dict['state_dict'])
         
         avg_rate = 0
@@ -114,7 +117,7 @@ def main():
 
             start_time = time.time()
             pred_disp = test(imgL,imgR)
-            print('time = %.2f' %(time.time() - start_time))
+            # print('time = %.2f' %(time.time() - start_time))
 
             if top_pad !=0 or right_pad != 0:
                 img = pred_disp[top_pad:,:-right_pad]
@@ -142,13 +145,13 @@ def main():
             # img.save(save_path + test_left_img[inx].split('/')[-1])
     
         avg_rate = avg_rate / len(test_left_img)
-        print("===> Model {} -- Total {} Frames ==> AVG 3 Px Error Rate: {:.4f}".format(model, len(test_left_img), avg_rate))
+        print("===> Model {} -- Total {} Frames ==> AVG 3 Px Error Rate: {:.4f}".format(model_no, len(test_left_img), avg_rate))
         
         if avg_rate < best_rate:
             best_rate = avg_rate
-            best_model = model
+            best_model = model_no
     
-    print("===> Best Model {} ==> Best AVG 3 Px Error Rate: {:.4f}".format(best_model, best_rate))
+    print("\n\n===> Best Model: {} ==> Best AVG 3 Px Error Rate: {:.4f}".format(best_model, best_rate))
 
 
 if __name__ == '__main__':
