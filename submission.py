@@ -12,6 +12,7 @@ import math
 from models import *
 from PIL import Image
 from scipy.io import savemat
+import preprocess
 
 parser = argparse.ArgumentParser(description='PSMNet')
 parser.add_argument('--KITTI', default='2015',
@@ -94,39 +95,55 @@ def main():
             imgL_o = Image.open(test_left_img[inx]).convert('RGB')
             imgR_o = Image.open(test_right_img[inx]).convert('RGB')
             dispL_o = Image.open(test_left_disp[inx])
+            
+            w, h = left_img.size
 
-            imgL = infer_transform(imgL_o)
-            imgR = infer_transform(imgR_o)
-            dispL = transform2(dispL_o).squeeze(0).detach().numpy()
+            left_img = left_img.crop((w-1232, h-368, w, h))
+            right_img = right_img.crop((w-1232, h-368, w, h))
+            w1, h1 = left_img.size
+            
+            dataL = dataL.crop((w-1232, h-368, w, h))
+            dataL = np.ascontiguousarray(dataL,dtype=np.float32)/256
+            
+            processed = preprocess.get_transform(augment=False)  
+            imgL = processed(left_img)
+            imgR = processed(right_img)
+
+#             imgL = infer_transform(imgL_o)
+#             imgR = infer_transform(imgR_o)
+#             dispL = transform2(dispL_o).squeeze(0).detach().numpy()
+          
+          
+          
 
             # pad to width and hight to 16 times
-            if imgL.shape[1] % 16 != 0:
-                times = imgL.shape[1]//16       
-                top_pad = (times+1)*16 -imgL.shape[1]
-            else:
-                top_pad = 0
+#             if imgL.shape[1] % 16 != 0:
+#                 times = imgL.shape[1]//16       
+#                 top_pad = (times+1)*16 -imgL.shape[1]
+#             else:
+#                 top_pad = 0
 
-            if imgL.shape[2] % 16 != 0:
-                times = imgL.shape[2]//16                       
-                right_pad = (times+1)*16-imgL.shape[2]
-            else:
-                right_pad = 0    
+#             if imgL.shape[2] % 16 != 0:
+#                 times = imgL.shape[2]//16                       
+#                 right_pad = (times+1)*16-imgL.shape[2]
+#             else:
+#                 right_pad = 0    
 
-            imgL = F.pad(imgL,(0,right_pad, top_pad,0)).unsqueeze(0)
-            imgR = F.pad(imgR,(0,right_pad, top_pad,0)).unsqueeze(0)
+#             imgL = F.pad(imgL,(0,right_pad, top_pad,0)).unsqueeze(0)
+#             imgR = F.pad(imgR,(0,right_pad, top_pad,0)).unsqueeze(0)
 
             start_time = time.time()
-            pred_disp = test(imgL,imgR)
+            img = test(imgL,imgR)
             # print('time = %.2f' %(time.time() - start_time))
 
-            if top_pad !=0 or right_pad != 0:
-                img = pred_disp[top_pad:,:-right_pad]
-            else:
-                img = pred_disp
+#             if top_pad !=0 or right_pad != 0:
+#                 img = pred_disp[top_pad:,:-right_pad]
+#             else:
+#                 img = pred_disp
 
-            img = (img*256).astype('uint16')
+#             img = (img*256).astype('uint16')
 
-            mask = np.logical_and(dispL >= 0.001 * 256, dispL <= int(args.maxdisp) * 256)
+            mask = np.logical_and(dispL >= 0.001, dispL <= int(args.maxdisp))
             rate = np.sum(np.abs(img[mask] - dispL[mask]) > 3.0) / np.sum(mask)
             
             avg_rate += rate
